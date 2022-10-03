@@ -20,7 +20,7 @@ class StudentData:
         self.data = {}
         self.unordered_data = []
         self.all_gpa = {"GPAX": [StudentData.filter_by_subject_number("xxxxxx")],
-                        "รายวิชาวิทยาศาสตร์": [StudentData.filter_by_subject_number("วxxxxx")],
+                        "รายวิชาวิทยาศาสตร์เเละเทคโนโลยี": [StudentData.filter_by_subject_number("วxxxxx")],
                         "รายวิชาสังคมศึกษา": [StudentData.filter_by_subject_number("สxxxxx")],
                         "รายวิชาภาษาไทย": [StudentData.filter_by_subject_number("ทxxxxx")],
                         "รายวิชาคณิตศาสตร์": [StudentData.filter_by_subject_number("คxxxxx")],
@@ -29,8 +29,11 @@ class StudentData:
                         "รายวิชาภาษาต่างประเทศ": [StudentData.filter_by_subject(["อังกฤษ","พม่า","จีน"])],
                         "ริชาประวัติศาสตร์": [StudentData.filter_by_subject(["ประวัติ"])],
                         "วิชาฟิสิกส์" :[StudentData.filter_by_subject(["ฟิสิกส์"])],
-                        "วิชาชีววิทยา": [StudentData.filter_by_subject(["ชีววิทยา"])],
+                        "วิชาชีววิทยา": [StudentData.filter_by_subject(["ชีววิทยา","ชีวภาพ"])],
                         "วิชาเคมี": [StudentData.filter_by_subject(["เคมี"])],
+                        "สุขศึกษาเเละพละศึกษา": [StudentData.filter_by_subject(["สุขศึกษา"])],
+                        "IS": [StudentData.filter_by_subject(["ศึกษาค้นคว้าด้วยตนเอง"])],
+                        "ภาษาอังกฤษ": [StudentData.filter_by_subject(["อังกฤษ"])]
                         }
 
     def add_period(self, file_name, degree, period):
@@ -113,7 +116,7 @@ class StudentData:
         return all_data
 
     def calculate_gpa(self, data):
-        df_column = ["รหัสวิชา","เกรด","หน่วยกิต","ภาคเรียนที่","ปีที่"]
+        df_column = ["เกรด","หน่วยกิต","นน.xเกรด","รหัสวิชา","ปีที่","ภาคเรียนที่"]
         df_data = []
         df_index = []
 
@@ -121,10 +124,11 @@ class StudentData:
         total_weight = 0
         for frame in data:
             try:
+                frame["เกรด"] = float(frame["เกรด"])
                 gpa += float(frame["เกรด"]) * frame["นก."]
                 total_weight += frame["นก."]
 
-                df_data.append([frame["รหัสวิชา"],frame["เกรด"],frame["นก."],frame["ภาคเรียน"],frame["ปี"]])
+                df_data.append([frame["เกรด"],frame["นก."],frame["เกรด"]*frame["นก."],frame["รหัสวิชา"],frame["ปี"],frame["ภาคเรียน"]])
                 df_index.append(frame["รายวิชา"])
             except:
                 pass

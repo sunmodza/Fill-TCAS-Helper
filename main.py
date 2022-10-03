@@ -78,8 +78,6 @@ class GPACalculator(GridLayout):
     def on_update(self,df):
         pass
 
-
-
 class SelectGPA(Spinner):
     def __init__(self):
         super(SelectGPA, self).__init__()
@@ -139,15 +137,51 @@ class GPALayout(BoxLayout):
         self.add_widget(self.data_cell_holder)
 
         self.add_data_button = Button(text="เพิ่มข้อมูลภาคเรียน")
+        self.save_as_excel_button = Button(text="Save As Excel")
+        self.save_as_excel_button.size = (Window.width, Window.height*0.025)
+        self.save_as_excel_button.bind(on_press=lambda *args:self.get_excel())
         self.add_data_button.font_name = "THSarabunNew Bold"
-        self.add_data_button.size = (Window.width, Window.height*0.05)
+        #self.add_data_button.size = (Window.width, Window.height*0.05)
         self.add_data_obj = AddData()
         self.add_data_popup = Popup(content=self.add_data_obj)
-        self.add_data_obj.exit_function = self.add_data_popup.dismiss
+        self.add_data_obj.exit_function = self.exit_function
         #self.add_data_popup.open()
         self.add_data_button.bind(on_press=lambda *args:self.add_data_popup.open())
-        self.add_widget(self.add_data_button)
 
+
+
+
+        self.hold_add_data_and_excel_download = FloatLayout()
+        self.hold_add_data_and_excel_download.add_widget(self.add_data_button)
+        self.add_data_button.pos_hint = {"x":0,"y":0}
+        self.add_data_button.size_hint_x = 0.8
+        self.hold_add_data_and_excel_download.add_widget(self.save_as_excel_button)
+        self.save_as_excel_button.pos_hint = {"y":0,"x":0.8}
+        self.save_as_excel_button.size_hint_x = 0.2
+
+        #self.add_widget(self.add_data_button)
+        self.add_widget(self.hold_add_data_and_excel_download)
+
+        #self.save_as_excel_button
+        #self.add_widget(self.save_as_excel_button)
+
+    def exit_function(self,*args):
+        student_data.auto_read()
+        student_data.auto_determined_possible()
+        self.add_data_popup.dismiss()
+
+    def get_excel(self):
+        import openpyxl
+        path = plyer.filechooser.save_file(path="a",filters=["xlsx"])[0]+".xlsx"
+        self.gpa_calculator.current_dataframe.to_excel(path)
+
+        wb = openpyxl.open(path)
+        sheet = wb.worksheets[0]
+        ptr_row = sheet.max_row+1
+        sheet.cell(row=ptr_row,column=3).value = self.data_cell.sum_df[1]
+        sheet.cell(row=ptr_row, column=4).value = self.data_cell.sum_df[2]
+
+        wb.save(path)
 
 class AddData(GridLayout):
     def __init__(self):
@@ -216,15 +250,30 @@ class FetchDataForm(GridLayout):
         self.add_widget(self.fetch_execute_button)
         
     async def fetch_period(self):
-        student_code,citizen_code = self.student_code_field.text, self.citizen_code_field.text
-        self.clear_widgets()
-        progress_field = TextInput()
-        self.add_widget(progress_field)
+        try:
+            student_code,citizen_code = self.student_code_field.text, self.citizen_code_field.text
+            #self.clear_widgets()
+            progress_field = TextInput()
+            #self.add_widget(progress_field)
 
-        def progress_update(stage):
-            progress_field.text += f"\n{stage}"
+            def progress_update(stage):
+                progress_field.text += f"\n{stage}"
 
-        start_fetch_period(student_code, citizen_code,progress_cb=progress_update)
+            start_fetch_period(student_code, citizen_code,progress_cb=progress_update)
+        except BaseException as e:
+            popup = Popup(
+                title="Error",
+                content=Label(text="รหัสนักเรียนหรือเลขประจําตัวประชาชนผิด", halign='left', valign='top'),
+                size_hint=(None, None),
+                size=(Window.width / 3, Window.height / 3),
+                auto_dismiss=True,
+            )
+            popup.open()
+            student_data.auto_read()
+            student_data.auto_determined_possible()
+            self.add_data_obj.reset()
+            reupdate()
+            return
         student_data.auto_read()
         student_data.auto_determined_possible()
         self.add_data_obj.reset()
@@ -282,10 +331,11 @@ class TestApp(App):
         # return a Button() as a root widget
         return GPALayout()
 
+
 class ShowDataCell(GridLayout):
     def __init__(self):
         super(ShowDataCell, self).__init__()
-        self.cols = 6
+        self.cols = 7
         #self.size_hint = (1,None)
         self.bind(minimum_height=self.setter('height'))
         self.font_name = "THSarabunNew Bold"
@@ -302,12 +352,33 @@ class ShowDataCell(GridLayout):
 
     def set_df(self,data):
         self.clear_widgets()
-        for column in ["รายวิชา",*data.columns]:
+        data = data.dropna()
+        sum_column = ["เกรด","หน่วยกิต","นน.xเกรด"]
+        sum_df = data[sum_column].sum()
+        all_columns = ["รายวิชา",*data.columns]
+        for column in all_columns:
             self.add_cell(column)
         for subject_cell in data.iloc:
             self.add_cell(subject_cell.name)
             for data in subject_cell.to_numpy().tolist():
                 self.add_cell(data)
+
+        for column in all_columns:
+            if column in sum_column:
+                self.add_cell(sum_df[column])
+            elif column == "รายวิชา":
+                self.add_cell("ผลรวม")
+            else:
+                self.add_cell("")
+
+        self.sum_df = sum_df
+
+
+
+
+
+
+
 
 
 if __name__ == '__main__':
